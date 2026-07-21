@@ -336,38 +336,3 @@ If everything is configured correctly the tunnel will automatically come up or e
 #diagnose debug disable
 #diagnose debug application ike -1
 #diagnode debug enable
-
-_____________________________________________________________________
--Here we are using "No NAT between sites" which means that
-both the fortigate has public IP address and are reacheable
--if we go for "This site is behind NAT" or "The remote site is behind NAT" it means that there is a router or a layer 3 switch between the Internet and the fortigate firewall. In these cases the fortigate's WAN interface receives an private ip address(192.168.1.23/30) from the ISP and the router or layer3 switch has the public ip address(203.9.66.89/30). Then through dhcp ISP provides private ip address to the fortigate wan interface.
-
-Authentication
-Remote device IP Address
-Remote IP address 203.126.78.1
-Outgoing Interface: WAN(port3)
-Authenctication method: Pre-shared Key
-Pre-shared Key: Admin@123
-Next>
-
-Policy & Routing
-Local interface: LAN(port2)
-Local subnets: 192.168.1.0/24
-Remote Subnets: 10.10.10.0/24
-Internet Access: None
-Next>
-
-Review Settings
-Object Summary
-
-Phase 1 interface: TJ-IPSEC-S2S
-Local address group: TJ-IPSEC-S2S_local
-Remote address group: TJ-IPSEC-S2S_remote
-Phase 2 interface: TJ-IPSEC-S2S
-Static route: static
-Blackhole route: static
-Local to remote policies: vpn_TJ-IPSEC-S2S_local
-Remote to local policies: vpn_TJ-IPSEC-S2S_remote
-Create
-
-After the creation of the 
