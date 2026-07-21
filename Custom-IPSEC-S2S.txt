@@ -1,0 +1,373 @@
+NOTE: This is the custom made IPsec site-to-site tunnel and I have not used the IPsec wizrad.
+*Fortinet1
+
+Interface Configuration
+Network > Interfaces
+
+Configure as per the topology
+
+Let's Create Address objects for Local users and
+Remote users.
+Policy & Objects > Addresses
++Create New > Address
+Name: Local-Users
+Color:
+Type: Subnet
+IP/Netmask: 192.168.1.0/24
+Interface: any
+OK
+
+Name: Remote-Users
+Color:
+Type: Subnet
+IP/Netmask: 10.10.10.0/24
+Interface: any
+OK
+
+Let's create a LAN to WAN policy for the lan
+users to connect to the internet
+
+Policy & Objects > Firewall Policy
++Create New
+Name: LAN-TO-WAN
+Incoming Interface: LAN(port2)
+Outgoing Interface: WAN(port3)
+Source: Local-Users
+Destination: all
+Schedule: always
+Service: ALL
+Action: ACCEPT
+Inspection Mode: Flow-based
+
+NAT (Enable)
+
+Log Allowed Traffic: All Sessions
+
+Enable this Policy (Enable)
+
+As we are in the lab environment and we have made port3
+as WAN and the router as ISP we need to provide a
+default route towards ISP interface e0/0 but as we also 
+have a default route towards the management cloud, we 
+need to change the administrative distance to create a
+scenario of default route towards ISP.
+default route: AD 254
+route towards ISP: AD 1
+
+Now we lets try to ping the loopback IP 1.1.1.1 configured
+on the ISP(Router)
+
+VPCS> ping 1.1.1.1
+
+84 bytes from 1.1.1.1 icmp_seq=1 ttl=254 time=12.373 ms
+84 bytes from 1.1.1.1 icmp_seq=2 ttl=254 time=2.720 ms
+84 bytes from 1.1.1.1 icmp_seq=3 ttl=254 time=3.164 ms
+84 bytes from 1.1.1.1 icmp_seq=4 ttl=254 time=2.927 ms
+84 bytes from 1.1.1.1 icmp_seq=5 ttl=254 time=4.019 ms
+
+Success!!
+
+We need to perform the same above task in the FortiGate2
+as well.
+
+
+***Now let's configure IPsec site to site vpn as follows:***
+*FortiGate-1*
+
+VPN>IPsec Tunnels
++Create New
+IPsec Tunnel
+Custom
+Name: TJ-IPSEC-S2S
+Comments: FortiGate-1 SITE IPSEC
+
+Network:
+IP Version: IPv4
+Remote Gateway: Static IP Address
+IP Address: 203.126.78.1
+Interface: WAN(port3)
+NAT Traversal: Enable
+Keepalive Frequency: 10
+Dead Peer Detection: On Demand
+DPD retry count: 3
+DPD retry interval: 20
+
+Authentication:
+Method: Pre-shared Key
+Pre-shared Key: Admin@123
+IKE
+Version: 2
+
+Phase1 Proposal
+Algorithms: DES-SHA1
+Diffie-Hellman Group: 14
+Key Lifetime (seconds): 86400
+
+Phase 2 Selectors
+   Name              Local Address                  Remote Address
+TJ-IPSEC-S2s   192.168.1.0/255.255.255.0       10.10.10.0/255.255.255.0
+
+Edit Phase 2
+Name TJ-IPSEC-S2s
+Comments
+Local Address Subnet  192.168.1.0/24
+Remote Address Subnet 10.10.10.0/24
+
+Phase 2 Proposal
+Encryption: DES  Authentication: SHA1
+Enable Replay Detection (enable)
+Enable Perfect Forward Secrecy (PFS)(enable)
+Diffie-Hellman Group: 14
+Auto-negotiate(enable)
+Auto Keep Alive(enable)
+Key Lifetime: Seconds
+Seconds: 43200
+
+A Custom IPsec tunnel will be created.
+
+Next we need to configure..
+-Static routes
+-Policies
+
+Network>Static Routes
+
++Create New
+Destination: Subnet
+	     10.10.10.0/24
+Interface:TJ-IPSEC-S2S
+Administrative Distance: 10
+Status: Enabled
+
++Create New
+Destination: Subnet
+	     10.10.10.0/24
+Interface:Blackhole
+Administrative Distance: 254
+Status: Enabled
+
+Policy & Objects>Firewall Policy
++Create New
+
+Name: FortiGate-1 to FortiGate-2
+Incoming Interface: LAN(port2)
+Outgoing Interface: TJ-IPSEC-S2S
+Source: LOCAL-USERS
+Destination: REMOTE-USERS
+Schedule: always
+Service: ALL
+Action: ACCEPT
+Inspection Mode: Flow-based
+
+NAT (Disable)
+
+Log Allowed Traffic: All Sessions
+
+Enable this Policy (Enable)
+
+Now click on this policy and Click Clone Reverse and 
+change the Policy name to FortiGate-2 to FortiGate-1
+everything else will be reversed.
+
+Now we have to configure these same things in reverse on
+FortiGate-2
+-----------------------------------------------------------------------
+
+*Fortinet2
+
+Interface Configuration
+Network > Interfaces
+
+Configure as per the topology
+
+Let's Create Address objects for Local users and
+Remote users.
+Policy & Objects > Addresses
++Create New > Address
+Name: Local-Users
+Color:
+Type: Subnet
+IP/Netmask: 10.10.10.0/24
+Interface: any
+OK
+
+Name: Remote-Users
+Color:
+Type: Subnet
+IP/Netmask: 192.168.1.0/24
+Interface: any
+OK
+
+Let's create a LAN to WAN policy for the lan
+users to connect to the internet
+
+Policy & Objects > Firewall Policy
++Create New
+Name: LAN-TO-WAN
+Incoming Interface: LAN(port2)
+Outgoing Interface: WAN(port3)
+Source: Local-Users
+Destination: all
+Schedule: always
+Service: ALL
+Action: ACCEPT
+Inspection Mode: Flow-based
+
+NAT (Enable)
+
+Log Allowed Traffic: All Sessions
+
+Enable this Policy (Enable)
+
+default route: AD 254
+route towards ISP: AD 1
+
+Now we lets try to ping the loopback IP 1.1.1.1 configured
+on the ISP(Router)
+
+VPCS> ping 1.1.1.1
+
+84 bytes from 1.1.1.1 icmp_seq=1 ttl=254 time=12.373 ms
+84 bytes from 1.1.1.1 icmp_seq=2 ttl=254 time=2.720 ms
+84 bytes from 1.1.1.1 icmp_seq=3 ttl=254 time=3.164 ms
+84 bytes from 1.1.1.1 icmp_seq=4 ttl=254 time=2.927 ms
+84 bytes from 1.1.1.1 icmp_seq=5 ttl=254 time=4.019 ms
+
+Success!!
+
+Let's Configure IPsec S2S 
+
+VPN>IPsec Tunnels
++Create New
+IPsec Tunnel
+Custom
+Name: TJ-IPSEC-S2S
+Comments: FortiGate-2 SITE IPSEC
+
+Network:
+IP Version: IPv4
+Remote Gateway: Static IP Address
+IP Address: 103.126.78.1
+Interface: WAN(port3)
+NAT Traversal: Enable
+Keepalive Frequency: 10
+Dead Peer Detection: On Demand
+DPD retry count: 3
+DPD retry interval: 20
+
+Authentication:
+Method: Pre-shared Key
+Pre-shared Key: Admin@123
+IKE
+Version: 2
+
+Phase1 Proposal
+Algorithms: DES-SHA1
+Diffie-Hellman Group: 14
+Key Lifetime (seconds): 86400
+
+Phase 2 Selectors
+   Name              Local Address                  Remote Address
+TJ-IPSEC-S2s      10.10.10.0/255.255.255.0      192.168.1.0/255.255.255.0
+
+Edit Phase 2
+Name TJ-IPSEC-S2s
+Comments
+Local Address Subnet  10.10.10.0/24
+Remote Address Subnet 192.168.1.0/24
+
+Phase 2 Proposal
+Encryption: DES  Authentication: SHA1
+Enable Replay Detection (enable)
+Enable Perfect Forward Secrecy (PFS)(enable)
+Diffie-Hellman Group: 14
+Auto-negotiate(enable)
+Auto Keep Alive(enable)
+Key Lifetime: Seconds
+Seconds: 43200
+
+A Custom IPsec tunnel will be created.
+
+Next we need to configure..
+-Static routes
+-Policies
+
+Network>Static Routes
+
++Create New
+Destination: Subnet
+	     192.168.1.0/24
+Interface:TJ-IPSEC-S2S
+Administrative Distance: 10
+Status: Enabled
+
++Create New
+Destination: Subnet
+	     192.168.1.0/24
+Interface:Blackhole
+Administrative Distance: 254
+Status: Enabled
+
+Policy & Objects>Firewall Policy
++Create New
+
+Name: FortiGate-2 to FortiGate-1
+Incoming Interface: LAN(port2)
+Outgoing Interface: TJ-IPSEC-S2S
+Source: LOCAL-USERS
+Destination: REMOTE-USERS
+Schedule: always
+Service: ALL
+Action: ACCEPT
+Inspection Mode: Flow-based
+
+NAT (Disable)
+
+Log Allowed Traffic: All Sessions
+
+Enable this Policy (Enable)
+
+Now click on this policy and Click Clone Reverse and 
+change the Policy name to FortiGate-1 to FortiGate-2
+everything else will be reversed.
+
+If everything is configured correctly the tunnel will automatically come up or else we need to generate some traffic from one end.
+
+*Some important debugging commands
+#diagnose debug disable
+#diagnose debug application ike -1
+#diagnode debug enable
+
+_____________________________________________________________________
+-Here we are using "No NAT between sites" which means that
+both the fortigate has public IP address and are reacheable
+-if we go for "This site is behind NAT" or "The remote site is behind NAT" it means that there is a router or a layer 3 switch between the Internet and the fortigate firewall. In these cases the fortigate's WAN interface receives an private ip address(192.168.1.23/30) from the ISP and the router or layer3 switch has the public ip address(203.9.66.89/30). Then through dhcp ISP provides private ip address to the fortigate wan interface.
+
+Authentication
+Remote device IP Address
+Remote IP address 203.126.78.1
+Outgoing Interface: WAN(port3)
+Authenctication method: Pre-shared Key
+Pre-shared Key: Admin@123
+Next>
+
+Policy & Routing
+Local interface: LAN(port2)
+Local subnets: 192.168.1.0/24
+Remote Subnets: 10.10.10.0/24
+Internet Access: None
+Next>
+
+Review Settings
+Object Summary
+
+Phase 1 interface: TJ-IPSEC-S2S
+Local address group: TJ-IPSEC-S2S_local
+Remote address group: TJ-IPSEC-S2S_remote
+Phase 2 interface: TJ-IPSEC-S2S
+Static route: static
+Blackhole route: static
+Local to remote policies: vpn_TJ-IPSEC-S2S_local
+Remote to local policies: vpn_TJ-IPSEC-S2S_remote
+Create
+
+After the creation of the 
